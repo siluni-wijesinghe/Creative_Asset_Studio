@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.env
+
+# Temporary and generated images
+server/uploads/*
+server/generated/*

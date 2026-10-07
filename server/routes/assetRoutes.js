@@ -1,7 +1,7 @@
 import express from "express";
 import multer from "multer";
 import { uploadsDir } from "../config/paths.js";
-import { generateAssets } from "../controllers/assetController.js";
+import { generateAssets, downloadAsset } from "../controllers/assetController.js";
 
 const router = express.Router();
 
@@ -17,5 +17,6 @@ const upload = multer({
 
 // POST /api/assets/generate. "image" must match the field name React sends.
 router.post("/generate", upload.single("image"), generateAssets);
-
+// GET /api/assets/download/<job>/<file> saves the image to the user's computer
+router.get("/download/:jobId/:fileName", downloadAsset);
 export default router;

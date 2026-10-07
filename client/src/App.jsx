@@ -17,6 +17,9 @@ function App() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateError, setGenerateError] = useState("");
 
+  // New in Step 9: changing this number rebuilds the upload box from scratch
+  const [resetCount, setResetCount] = useState(0);
+
   useEffect(() => {
     fetch(`${API_URL}/api/health`)
       .then((res) => res.json())
@@ -43,6 +46,17 @@ function App() {
     );
   }
 
+  // New in Step 9: put everything back to the starting state
+  function handleStartOver() {
+    if (previewUrl) URL.revokeObjectURL(previewUrl); // free the preview address
+    setFile(null);
+    setPreviewUrl("");
+    setSelectedIds([]);
+    setAssets([]);
+    setGenerateError("");
+    setResetCount((count) => count + 1); // new key = fresh UploadZone
+  }
+
   async function handleGenerate() {
     setIsGenerating(true);
     setGenerateError("");
@@ -61,7 +75,14 @@ function App() {
 
       if (!response.ok) throw new Error(data.error);
 
-      setAssets(data.assets.map((asset) => ({ ...asset, url: API_URL + asset.url })));
+      // The server sends relative addresses, so add the server address in front
+      setAssets(
+        data.assets.map((asset) => ({
+          ...asset,
+          url: API_URL + asset.url,
+          downloadUrl: API_URL + asset.downloadUrl,
+        }))
+      );
     } catch (error) {
       setGenerateError(
         error.message === "Failed to fetch"
@@ -82,7 +103,12 @@ function App() {
         <p>Turn one product image into platform-ready assets.</p>
       </header>
 
-      <UploadZone file={file} previewUrl={previewUrl} onFileSelected={handleFileSelected} />
+      <UploadZone
+        key={resetCount}
+        file={file}
+        previewUrl={previewUrl}
+        onFileSelected={handleFileSelected}
+      />
 
       {file && presets.length > 0 && (
         <PlatformSelector presets={presets} selectedIds={selectedIds} onToggle={handleToggle} />
@@ -104,6 +130,13 @@ function App() {
       {generateError && <p className="error-message">{generateError}</p>}
 
       {assets.length > 0 && <GeneratedAssets assets={assets} />}
+
+      {/* Only shown once there's something to clear */}
+      {file && (
+        <button className="text-button" onClick={handleStartOver} disabled={isGenerating}>
+          Start Over
+        </button>
+      )}
 
       <p className="server-status">{serverStatus}</p>
     </main>

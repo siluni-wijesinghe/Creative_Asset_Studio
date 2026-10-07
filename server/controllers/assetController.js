@@ -45,6 +45,7 @@ export async function generateAssets(req, res, next) {
           format: preset.format,
           fileName,
           url: `/generated/${jobId}/${fileName}`,
+          downloadUrl: `/api/assets/download/${jobId}/${fileName}`,
         };
       })
     );
@@ -56,4 +57,21 @@ export async function generateAssets(req, res, next) {
     // The original upload was only temporary, so delete it
     if (req.file) await fs.unlink(req.file.path).catch(() => {});
   }
+}
+
+// Sends a finished image to the browser as a download
+export function downloadAsset(req, res) {
+  // path.basename removes any "../" tricks, so nobody can reach files
+  // outside the generated folder
+  const jobId = path.basename(req.params.jobId);
+  const fileName = path.basename(req.params.fileName);
+  const filePath = path.join(generatedDir, jobId, fileName);
+
+
+  // res.download sets the header that makes the browser save the file
+  res.download(filePath, fileName, (error) => {
+    if (error && !res.headersSent) {
+      res.status(404).json({ error: "File not found." });
+    }
+  });
 }
