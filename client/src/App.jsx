@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import UploadZone from "./components/UploadZone";
+import LogoUpload from "./components/LogoUpload";
 import PlatformSelector from "./components/PlatformSelector";
 import GeneratedAssets from "./components/GeneratedAssets";
+import { DEFAULT_LOGO_PLACEMENT } from "./utils/logoPlacement";
 
 const API_URL = "http://localhost:5000";
 
@@ -13,11 +15,14 @@ function App() {
   const [selectedIds, setSelectedIds] = useState([]);
   const [presetsError, setPresetsError] = useState("");
 
+  const [logoFile, setLogoFile] = useState(null);
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState("");
+  // New in Step 14: one object replaces logoPosition and logoSize
+  const [logoPlacement, setLogoPlacement] = useState(DEFAULT_LOGO_PLACEMENT);
+
   const [assets, setAssets] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateError, setGenerateError] = useState("");
-
-  // New in Step 9: changing this number rebuilds the upload box from scratch
   const [resetCount, setResetCount] = useState(0);
 
   useEffect(() => {
@@ -40,21 +45,45 @@ function App() {
     setGenerateError("");
   }
 
+  function handleLogoSelected(newLogo) {
+    if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
+    setLogoFile(newLogo);
+    setLogoPreviewUrl(URL.createObjectURL(newLogo));
+    setAssets([]); // old results were made without this logo
+  }
+
+  function handleLogoRemoved() {
+    if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
+    setLogoFile(null);
+    setLogoPreviewUrl("");
+    setLogoPlacement(DEFAULT_LOGO_PLACEMENT);
+    setAssets([]);
+  }
+
+  // Called while the logo is dragged or resized
+  function handlePlacementChange(newPlacement) {
+    setLogoPlacement(newPlacement);
+    setAssets([]); // old results used the old placement
+  }
+
   function handleToggle(id) {
     setSelectedIds((current) =>
       current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
     );
   }
 
-  // New in Step 9: put everything back to the starting state
   function handleStartOver() {
-    if (previewUrl) URL.revokeObjectURL(previewUrl); // free the preview address
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
     setFile(null);
     setPreviewUrl("");
+    setLogoFile(null);
+    setLogoPreviewUrl("");
+    setLogoPlacement(DEFAULT_LOGO_PLACEMENT);
     setSelectedIds([]);
     setAssets([]);
     setGenerateError("");
-    setResetCount((count) => count + 1); // new key = fresh UploadZone
+    setResetCount((count) => count + 1);
   }
 
   async function handleGenerate() {
@@ -65,6 +94,11 @@ function App() {
     const formData = new FormData();
     formData.append("image", file);
     formData.append("platforms", JSON.stringify(selectedIds));
+    if (logoFile) {
+      formData.append("logo", logoFile);
+      // New in Step 14: send the placement as text, like '{"x":0.78,"y":0.78,"width":0.18}'
+      formData.append("logoPlacement", JSON.stringify(logoPlacement));
+    }
 
     try {
       const response = await fetch(`${API_URL}/api/assets/generate`, {
@@ -75,7 +109,6 @@ function App() {
 
       if (!response.ok) throw new Error(data.error);
 
-      // The server sends relative addresses, so add the server address in front
       setAssets(
         data.assets.map((asset) => ({
           ...asset,
@@ -110,6 +143,19 @@ function App() {
         onFileSelected={handleFileSelected}
       />
 
+      {file && (
+        <LogoUpload
+          logoFile={logoFile}
+          logoPreviewUrl={logoPreviewUrl}
+          productPreviewUrl={previewUrl}
+          presets={presets}
+          logoPlacement={logoPlacement}
+          onLogoSelected={handleLogoSelected}
+          onLogoRemoved={handleLogoRemoved}
+          onPlacementChange={handlePlacementChange}
+        />
+      )}
+
       {file && presets.length > 0 && (
         <PlatformSelector presets={presets} selectedIds={selectedIds} onToggle={handleToggle} />
       )}
@@ -131,7 +177,6 @@ function App() {
 
       {assets.length > 0 && <GeneratedAssets assets={assets} />}
 
-      {/* Only shown once there's something to clear */}
       {file && (
         <button className="text-button" onClick={handleStartOver} disabled={isGenerating}>
           Start Over
