@@ -130,10 +130,10 @@ function App() {
   const canGenerate = file && selectedIds.length > 0 && !isGenerating;
 
   return (
-    <main className="app">
-      <header className="header">
-        <h1>Creative Asset Studio</h1>
-        <p>Turn one product image into platform-ready assets.</p>
+        <main className="mx-auto max-w-[640px] px-6 py-16">
+      <header>
+        <h1 className="mb-2 text-3xl font-bold tracking-tight">Creative Asset Studio</h1>
+        <p className="mb-10 text-stone-500">Turn one product image into platform-ready assets.</p>
       </header>
 
       <UploadZone
@@ -160,30 +160,44 @@ function App() {
         <PlatformSelector presets={presets} selectedIds={selectedIds} onToggle={handleToggle} />
       )}
 
-      {presetsError && <p className="error-message">{presetsError}</p>}
+            {presetsError && (
+        <p className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{presetsError}</p>
+      )}
 
       {file && (
-        <div className="generate-area">
-          <button className="primary-button" onClick={handleGenerate} disabled={!canGenerate}>
+        <div className="mt-8">
+          <button
+            className="w-full cursor-pointer rounded-xl bg-stone-900 py-4 text-base font-semibold text-white transition-colors hover:enabled:bg-stone-700 disabled:cursor-not-allowed disabled:opacity-35"
+            onClick={handleGenerate}
+            disabled={!canGenerate}
+          >
             {isGenerating ? "Generating..." : "Generate Assets"}
           </button>
           {selectedIds.length === 0 && (
-            <p className="hint">Select at least one platform to continue.</p>
+            <p className="mt-2.5 text-center text-[13px] text-stone-400">
+              Select at least one platform to continue.
+            </p>
           )}
         </div>
       )}
 
-      {generateError && <p className="error-message">{generateError}</p>}
+      {generateError && (
+        <p className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{generateError}</p>
+      )}
 
       {assets.length > 0 && <GeneratedAssets assets={assets} />}
 
       {file && (
-        <button className="text-button" onClick={handleStartOver} disabled={isGenerating}>
+        <button
+          className="mx-auto mt-10 block cursor-pointer rounded-lg px-4 py-2 text-sm text-stone-500 transition-colors hover:enabled:bg-stone-100 hover:enabled:text-stone-900 disabled:cursor-not-allowed disabled:opacity-40"
+          onClick={handleStartOver}
+          disabled={isGenerating}
+        >
           Start Over
         </button>
       )}
 
-      <p className="server-status">{serverStatus}</p>
+            <p className="mt-12 text-center text-xs text-stone-400">{serverStatus}</p>
     </main>
   );
 }

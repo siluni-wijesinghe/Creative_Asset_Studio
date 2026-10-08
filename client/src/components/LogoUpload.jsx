@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import LogoEditor from "./LogoEditor";
+import SecondaryButton from "./SecondaryButton";
 
 // Logos are usually PNG (they can be transparent), but JPG is fine too.
 const ALLOWED_TYPES = ["image/png", "image/jpeg"];
@@ -39,33 +40,32 @@ function LogoUpload({
   }
 
   return (
-    <section className="section">
-      <h2>
-        Brand <span className="optional">(optional)</span>
+    <section className="mt-10">
+      <h2 className="mb-4 text-base font-semibold">
+        Brand{" "}
+        <span className="text-[13px] font-normal text-stone-400">(optional)</span>
       </h2>
 
-      <div className="logo-row">
+      <div className="flex items-center gap-4 rounded-2xl border-[1.5px] border-stone-200 bg-white p-4">
         {logoPreviewUrl ? (
           <>
-            <div className="logo-thumb">
-              <img src={logoPreviewUrl} alt="Logo preview" />
+            <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-stone-100">
+              <img className="max-h-full max-w-full" src={logoPreviewUrl} alt="Logo preview" />
             </div>
-            <div className="logo-info">
-              <p className="file-name">{logoFile.name}</p>
-              <p className="file-meta">Logo added</p>
+            <div className="min-w-0 flex-1">
+              <p className="mb-1 break-all text-sm font-semibold">{logoFile.name}</p>
+              <p className="text-sm text-stone-500">Logo added</p>
             </div>
-            <button className="secondary-button" onClick={onLogoRemoved}>
-              Remove
-            </button>
+            <SecondaryButton onClick={onLogoRemoved}>Remove</SecondaryButton>
           </>
         ) : (
           <>
-            <p className="file-meta logo-hint">
+            <p className="flex-1 text-sm text-stone-500">
               Add your logo to place it on every asset. PNG or JPG, up to {MAX_SIZE_MB} MB.
             </p>
-            <button className="secondary-button" onClick={() => inputRef.current.click()}>
+            <SecondaryButton onClick={() => inputRef.current.click()}>
               Upload logo
-            </button>
+            </SecondaryButton>
           </>
         )}
 
@@ -79,7 +79,9 @@ function LogoUpload({
         />
       </div>
 
-      {error && <p className="error-message">{error}</p>}
+      {error && (
+        <p className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
+      )}
 
       {/* The editor only makes sense with a logo (and the platform list loaded) */}
       {logoPreviewUrl && presets.length > 0 && (

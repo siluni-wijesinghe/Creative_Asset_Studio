@@ -11,7 +11,7 @@ function formatSize(bytes) {
 }
 
 function UploadZone({ file, previewUrl, onFileSelected }) {
-  const inputRef = useRef(null);                // points to the hidden file input
+  const inputRef = useRef(null); // points to the hidden file input
   const [isDragging, setIsDragging] = useState(false); // highlight while dragging
   const [error, setError] = useState("");
 
@@ -43,10 +43,16 @@ function UploadZone({ file, previewUrl, onFileSelected }) {
     event.target.value = ""; // lets you pick the same file again later
   }
 
+  // The look of the box changes while a file is being dragged over it.
+  // We build the class list as text and pick one of two sets.
+  const zoneColors = isDragging
+    ? "border-stone-900 bg-stone-100"
+    : "border-stone-300 bg-white hover:border-stone-400";
+
   return (
     <div>
       <div
-        className={`upload-zone ${isDragging ? "dragging" : ""}`}
+        className={`cursor-pointer rounded-2xl border-2 border-dashed px-6 py-12 text-center transition-colors ${zoneColors}`}
         onClick={() => inputRef.current.click()}
         onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
         onDragLeave={() => setIsDragging(false)}
@@ -54,14 +60,22 @@ function UploadZone({ file, previewUrl, onFileSelected }) {
       >
         {previewUrl ? (
           <>
-            <img className="upload-preview" src={previewUrl} alt="Uploaded product" />
-            <p className="file-name">{file.name}</p>
-            <p className="file-meta">{formatSize(file.size)} · Click or drop to replace</p>
+            <img
+              className="mx-auto mb-4 max-h-80 max-w-full rounded-xl"
+              src={previewUrl}
+              alt="Uploaded product"
+            />
+            <p className="mb-1 break-all font-semibold">{file.name}</p>
+            <p className="text-sm text-stone-500">
+              {formatSize(file.size)} · Click or drop to replace
+            </p>
           </>
         ) : (
           <>
-            <p className="upload-title">Drop your product image here</p>
-            <p className="file-meta">or click to browse · JPG or PNG, up to {MAX_SIZE_MB} MB</p>
+            <p className="mb-2 text-lg font-semibold">Drop your product image here</p>
+            <p className="text-sm text-stone-500">
+              or click to browse · JPG or PNG, up to {MAX_SIZE_MB} MB
+            </p>
           </>
         )}
 
@@ -74,7 +88,9 @@ function UploadZone({ file, previewUrl, onFileSelected }) {
         />
       </div>
 
-      {error && <p className="error-message">{error}</p>}
+      {error && (
+        <p className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
+      )}
     </div>
   );
 }
