@@ -1,6 +1,6 @@
 import express from "express";
 import multer from "multer";
-import { analyze } from "../controllers/aiController.js";
+import { analyze, description, altText } from "../controllers/aiController.js";
 import { aiRateLimit } from "../middleware/rateLimit.js";
 
 const router = express.Router();
@@ -18,5 +18,7 @@ const upload = multer({
 
 // The rate limit runs first, so blocked visitors never upload anything
 router.post("/analyze", aiRateLimit, upload.single("image"), analyze);
+router.post("/description", aiRateLimit, description);
+router.post("/alt-text", aiRateLimit, altText);
 
 export default router;

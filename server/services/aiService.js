@@ -2,8 +2,26 @@ import { GoogleGenAI } from "@google/genai";
 import sharp from "sharp";
 import { z } from "zod";
 import { aiConfig } from "../config/ai.js";
-import { ProductAnalysisSchema, normalizeAnalysis } from "../schemas/aiSchemas.js";
+import {
+  ProductAnalysisSchema,
+  ProductDescriptionSchema,
+  AltTextSchema,
+  DESCRIPTION_FIELDS,
+  DESCRIPTION_LIMITS,
+  normalizeAnalysis,
+  cleanContentText,
+  cleanAltText,
+} from "../schemas/aiSchemas.js";
 import { analysisSystemInstruction, buildAnalysisPrompt } from "../prompts/analysisPrompt.js";
+import {
+  buildFacts,
+  buildAltFacts,
+  descriptionSystemInstruction,
+  altTextSystemInstruction,
+  buildDescriptionPrompt,
+  buildAltTextPrompt,
+} from "../prompts/contentPrompts.js";
+import { findUnsupportedFacts } from "./contentChecks.js";
 
 // A problem we understand. The message is safe to show to the user.
 export class AiError extends Error {
@@ -151,4 +169,52 @@ export async function analyzeImage(imageBuffer, productInfo = {}) {
   });
 
   return applyUserInfo(normalizeAnalysis(raw), productInfo);
+}
+// ---------------------------------------------------------------
+// Phase 2: text-only features. They reuse the analysis, so no image is sent.
+// ---------------------------------------------------------------
+
+// field is "all" or one of: short, ecommerce, oneLine.
+// Returns { short: { text, warnings }, ... } for the fields that were asked for.
+export async function generateDescription({ analysis, productInfo, tone, field, previous }) {
+  const fields = field === "all" ? DESCRIPTION_FIELDS : [field];
+
+  // Ask Gemini only for the fields we need
+  const schema = ProductDescriptionSchema.pick(Object.fromEntries(fields.map((f) => [f, true])));
+  const facts = buildFacts(analysis, productInfo);
+
+  const raw = await generateValidated({
+    contents: buildDescriptionPrompt({ facts, tone, fields, previous }),
+    schema,
+    systemInstruction: descriptionSystemInstruction,
+  });
+
+  // Tidy each text and check it against the facts (plain code, no AI)
+  const source = JSON.stringify(facts);
+  const items = {};
+  for (const name of fields) {
+    const text = cleanContentText(raw[name], DESCRIPTION_LIMITS[name]);
+    if (!text) {
+      throw new AiError("INVALID_RESPONSE", "The AI returned an answer we couldn't use. Please try again.", 502);
+    }
+    items[name] = { text, warnings: findUnsupportedFacts(text, source) };
+  }
+  return items;
+}
+
+// Returns { text, warnings }
+export async function generateAltText({ analysis, previous }) {
+  const facts = buildAltFacts(analysis);
+
+  const raw = await generateValidated({
+    contents: buildAltTextPrompt({ facts, previous }),
+    schema: AltTextSchema,
+    systemInstruction: altTextSystemInstruction,
+  });
+
+  const text = cleanAltText(raw.altText);
+  if (!text) {
+    throw new AiError("INVALID_RESPONSE", "The AI returned an answer we couldn't use. Please try again.", 502);
+  }
+  return { text, warnings: findUnsupportedFacts(text, JSON.stringify(facts)) };
 }

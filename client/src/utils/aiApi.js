@@ -1,7 +1,27 @@
 const API_URL = "http://localhost:5000";
 
-// Sends the photo and the optional product info to the server.
-// Returns the analysis, or throws an Error with a message safe to show.
+// Sends JSON to the server. Returns the answer, or throws an Error
+// with a message that is safe to show.
+async function postJson(path, body) {
+  let response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    throw new Error("Could not reach the server. Is it running?");
+  }
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.error || "The AI request failed. Please try again.");
+  }
+  return data;
+}
+
+// Sends the photo and the optional product info. Returns the analysis.
 export async function analyzeProduct(imageFile, productInfo) {
   const formData = new FormData();
   formData.append("image", imageFile);
@@ -19,4 +39,17 @@ export async function analyzeProduct(imageFile, productInfo) {
     throw new Error(data.error || "The AI analysis failed. Please try again.");
   }
   return data.analysis;
+}
+
+// field: "all", "short", "ecommerce" or "oneLine".
+// Returns { short: { text, warnings }, ... } for the fields that were written.
+export async function generateDescription({ analysis, productInfo, tone, field, previous }) {
+  const data = await postJson("/api/ai/description", { analysis, productInfo, tone, field, previous });
+  return data.items;
+}
+
+// Returns { text, warnings }
+export async function generateAltText({ analysis, previous }) {
+  const data = await postJson("/api/ai/alt-text", { analysis, previous });
+  return data.item;
 }

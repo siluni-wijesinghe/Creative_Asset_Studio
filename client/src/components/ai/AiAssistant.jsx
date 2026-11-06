@@ -1,11 +1,13 @@
 import { useState } from "react";
 import ProductInfoForm from "./ProductInfoForm";
 import AnalysisPanel from "./AnalysisPanel";
+import DescriptionSection from "./DescriptionSection";
+import AltTextSection from "./AltTextSection";
 import SecondaryButton from "../SecondaryButton";
 import { analyzeProduct } from "../../utils/aiApi";
 
-// The AI section. It keeps its own state for now (we'll share the analysis
-// with other features in Phase 2).
+// The AI section. It keeps its own state, and passes the analysis down to
+// the features that reuse it.
 function AiAssistant({ file }) {
   const [productInfo, setProductInfo] = useState({ brand: "", name: "", notes: "" });
   const [analysis, setAnalysis] = useState(null);
@@ -15,6 +17,8 @@ function AiAssistant({ file }) {
   async function handleAnalyze() {
     setIsAnalyzing(true);
     setError("");
+    // Clearing the analysis also removes the description and alt text below it,
+    // because they belong to the old analysis.
     setAnalysis(null);
 
     try {
@@ -49,7 +53,13 @@ function AiAssistant({ file }) {
         <p className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
       )}
 
-      {analysis && <AnalysisPanel analysis={analysis} />}
+      {analysis && (
+        <>
+          <AnalysisPanel analysis={analysis} />
+          <DescriptionSection analysis={analysis} productInfo={productInfo} />
+          <AltTextSection analysis={analysis} />
+        </>
+      )}
     </section>
   );
 }

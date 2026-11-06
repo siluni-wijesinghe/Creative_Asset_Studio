@@ -1,5 +1,18 @@
-import { analyzeImage, AiError } from "../services/aiService.js";
-import { ProductInfoSchema } from "../schemas/aiSchemas.js";
+import { analyzeImage, generateDescription, generateAltText, AiError } from "../services/aiService.js";
+import {
+  ProductInfoSchema,
+  DescriptionRequestSchema,
+  AltTextRequestSchema,
+} from "../schemas/aiSchemas.js";
+
+// Problems we understand get a friendly message and the right status code.
+// Anything else goes to the general error handler.
+function handleError(error, res, next) {
+  if (error instanceof AiError) {
+    return res.status(error.status).json({ error: error.message, code: error.code });
+  }
+  next(error);
+}
 
 // POST /api/ai/analyze
 export async function analyze(req, res, next) {
@@ -22,10 +35,35 @@ export async function analyze(req, res, next) {
     const analysis = await analyzeImage(req.file.buffer, productInfo);
     res.json({ analysis });
   } catch (error) {
-    // Problems we understand get a friendly message and the right status code
-    if (error instanceof AiError) {
-      return res.status(error.status).json({ error: error.message, code: error.code });
+    handleError(error, res, next);
+  }
+}
+
+// POST /api/ai/description
+export async function description(req, res, next) {
+  try {
+    // Never trust what the browser sends: check its shape and sizes
+    const parsed = DescriptionRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "The request was not valid." });
     }
-    next(error); // anything else goes to the general error handler
+    const items = await generateDescription(parsed.data);
+    res.json({ items });
+  } catch (error) {
+    handleError(error, res, next);
+  }
+}
+
+// POST /api/ai/alt-text
+export async function altText(req, res, next) {
+  try {
+    const parsed = AltTextRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "The request was not valid." });
+    }
+    const item = await generateAltText(parsed.data);
+    res.json({ item });
+  } catch (error) {
+    handleError(error, res, next);
   }
 }
