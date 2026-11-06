@@ -4,6 +4,7 @@ import LogoUpload from "./components/LogoUpload";
 import PlatformSelector from "./components/PlatformSelector";
 import GeneratedAssets from "./components/GeneratedAssets";
 import { DEFAULT_LOGO_PLACEMENT } from "./utils/logoPlacement";
+import AiAssistant from "./components/ai/AiAssistant";
 
 const API_URL = "http://localhost:5000";
 
@@ -142,6 +143,7 @@ function App() {
         previewUrl={previewUrl}
         onFileSelected={handleFileSelected}
       />
+      {file && <AiAssistant key={previewUrl} file={file} />}
 
       {file && (
         <LogoUpload
