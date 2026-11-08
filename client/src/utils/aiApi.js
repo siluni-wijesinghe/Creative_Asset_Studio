@@ -72,3 +72,9 @@ export async function generateSeo({ analysis, productInfo, field, previous }) {
   const data = await postJson("/api/ai/seo", { analysis, productInfo, field, previous });
   return data.items;
 }
+// Not AI: asks the server for the final file names (one per platform).
+// platforms is optional: a list of platform ids. Returns [{ id, platform, filename }].
+export async function previewNames({ brand, product, assetType, version, platforms }) {
+  const data = await postJson("/api/naming/preview", { brand, product, assetType, version, platforms });
+  return data.names;
+}
