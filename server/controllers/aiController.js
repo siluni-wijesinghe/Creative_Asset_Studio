@@ -1,8 +1,17 @@
-import { analyzeImage, generateDescription, generateAltText, AiError } from "../services/aiService.js";
+import {
+  analyzeImage,
+  generateDescription,
+  generateAltText,
+  generateCaption,
+  generateSeo,
+  AiError,
+} from "../services/aiService.js";
 import {
   ProductInfoSchema,
   DescriptionRequestSchema,
   AltTextRequestSchema,
+  CaptionRequestSchema,
+  SeoRequestSchema,
 } from "../schemas/aiSchemas.js";
 
 // Problems we understand get a friendly message and the right status code.
@@ -63,6 +72,34 @@ export async function altText(req, res, next) {
     }
     const item = await generateAltText(parsed.data);
     res.json({ item });
+  } catch (error) {
+    handleError(error, res, next);
+  }
+}
+
+// POST /api/ai/caption
+export async function caption(req, res, next) {
+  try {
+    const parsed = CaptionRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "The request was not valid." });
+    }
+    const item = await generateCaption(parsed.data);
+    res.json({ item });
+  } catch (error) {
+    handleError(error, res, next);
+  }
+}
+
+// POST /api/ai/seo
+export async function seo(req, res, next) {
+  try {
+    const parsed = SeoRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "The request was not valid." });
+    }
+    const items = await generateSeo(parsed.data);
+    res.json({ items });
   } catch (error) {
     handleError(error, res, next);
   }

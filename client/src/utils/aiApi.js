@@ -53,3 +53,22 @@ export async function generateAltText({ analysis, previous }) {
   const data = await postJson("/api/ai/alt-text", { analysis, previous });
   return data.item;
 }
+// platform: "instagram", "facebook" or "linkedin".
+// Returns { text, warnings, maxChars }.
+export async function generateCaption({ analysis, productInfo, platform, tone, includeHashtags, previous }) {
+  const data = await postJson("/api/ai/caption", {
+    analysis,
+    productInfo,
+    platform,
+    tone,
+    includeHashtags,
+    previous,
+  });
+  return data.item;
+}
+// field: "all", "seoTitle", "metaDescription", "keywords" or "filenameSuggestion".
+// Returns { seoTitle: { text, warnings, maxChars }, ... } for the fields written.
+export async function generateSeo({ analysis, productInfo, field, previous }) {
+  const data = await postJson("/api/ai/seo", { analysis, productInfo, field, previous });
+  return data.items;
+}

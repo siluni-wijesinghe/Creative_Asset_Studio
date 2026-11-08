@@ -17,6 +17,12 @@ const RISKY_CLAIMS = [
   "limited edition",
   "discount",
   "% off",
+  "best seller",
+  "bestseller",
+  "top-rated",
+  "cheapest",
+  "lowest price",
+  "number one",
 ];
 
 const PRICE_PATTERN = /[$€£₹]|\b(?:usd|eur|gbp|lkr)\b/i;

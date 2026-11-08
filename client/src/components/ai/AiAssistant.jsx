@@ -3,8 +3,10 @@ import ProductInfoForm from "./ProductInfoForm";
 import AnalysisPanel from "./AnalysisPanel";
 import DescriptionSection from "./DescriptionSection";
 import AltTextSection from "./AltTextSection";
+import CaptionSection from "./CaptionSection";
 import SecondaryButton from "../SecondaryButton";
 import { analyzeProduct } from "../../utils/aiApi";
+import SeoSection from "./SeoSection";
 
 // The AI section. It keeps its own state, and passes the analysis down to
 // the features that reuse it.
@@ -58,6 +60,8 @@ function AiAssistant({ file }) {
           <AnalysisPanel analysis={analysis} />
           <DescriptionSection analysis={analysis} productInfo={productInfo} />
           <AltTextSection analysis={analysis} />
+          <CaptionSection analysis={analysis} productInfo={productInfo} />
+          <SeoSection analysis={analysis} productInfo={productInfo} />
         </>
       )}
     </section>

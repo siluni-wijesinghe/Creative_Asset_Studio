@@ -11,7 +11,8 @@ const STATUS_STYLES = {
 // One piece of AI-written text with Edit, Regenerate, Copy and Approve.
 // The parent owns the data; this card shows it and reports what the user does.
 //   item = { text, status: "draft" | "edited" | "approved", warnings: [] }
-function ContentCard({ title, item, onChange, onRegenerate, isBusy, disabled, rows = 3 }) {
+//   maxChars (optional) shows a character counter
+function ContentCard({ title, item, onChange, onRegenerate, isBusy, disabled, rows = 3, maxChars }) {
   const [isEditing, setIsEditing] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -37,6 +38,7 @@ function ContentCard({ title, item, onChange, onRegenerate, isBusy, disabled, ro
 
   const isApproved = item.status === "approved";
   const buttonSize = "px-3 py-1.5 text-[13px]";
+  const tooLong = maxChars && item.text.length > maxChars;
 
   return (
     <div className="rounded-xl border-[1.5px] border-stone-200 bg-stone-50 p-3.5">
@@ -56,6 +58,13 @@ function ContentCard({ title, item, onChange, onRegenerate, isBusy, disabled, ro
         />
       ) : (
         <p className="whitespace-pre-line text-sm">{item.text}</p>
+      )}
+
+      {maxChars && (
+        <p className={`mt-1.5 text-xs ${tooLong ? "text-amber-700" : "text-stone-400"}`}>
+          {item.text.length} / {maxChars} characters
+          {tooLong && " (over our preset for this platform)"}
+        </p>
       )}
 
       {item.warnings.length > 0 && (

@@ -1,5 +1,5 @@
-// These ids match the tones the server accepts
-const TONES = [
+// All the tones the server accepts for descriptions
+const ALL_TONES = [
   { id: "professional", label: "Professional" },
   { id: "friendly", label: "Friendly" },
   { id: "minimal", label: "Minimal" },
@@ -7,11 +7,12 @@ const TONES = [
   { id: "promotional", label: "Promotional" },
 ];
 
-function ToneSelector({ value, onChange, disabled }) {
+// "tones" is optional: pass a shorter list to show fewer choices
+function ToneSelector({ value, onChange, disabled, tones = ALL_TONES }) {
   return (
     <div className="mb-3 flex flex-wrap items-center gap-2">
       <span className="mr-1 text-[13px] text-stone-500">Tone</span>
-      {TONES.map((tone) => (
+      {tones.map((tone) => (
         <button
           key={tone.id}
           type="button"

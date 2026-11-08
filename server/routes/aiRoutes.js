@@ -1,6 +1,6 @@
 import express from "express";
 import multer from "multer";
-import { analyze, description, altText } from "../controllers/aiController.js";
+import { analyze, description, altText, caption, seo } from "../controllers/aiController.js";
 import { aiRateLimit } from "../middleware/rateLimit.js";
 
 const router = express.Router();
@@ -20,5 +20,7 @@ const upload = multer({
 router.post("/analyze", aiRateLimit, upload.single("image"), analyze);
 router.post("/description", aiRateLimit, description);
 router.post("/alt-text", aiRateLimit, altText);
+router.post("/caption", aiRateLimit, caption);
+router.post("/seo", aiRateLimit, seo);
 
 export default router;

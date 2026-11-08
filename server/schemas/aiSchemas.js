@@ -187,3 +187,118 @@ export function cleanAltText(value) {
   altText = altText.charAt(0).toUpperCase() + altText.slice(1);
   return /[.!?]$/.test(altText) ? altText : altText + ".";
 }
+// ---------------------------------------------------------------
+// Phase 3: social captions
+// ---------------------------------------------------------------
+
+import { captionPlatforms } from "../config/captionPlatforms.js";
+
+export const CAPTION_TONES = ["professional", "friendly", "promotional", "minimal"];
+
+// The shape we ask Gemini to answer in
+export const SocialCaptionSchema = z.object({
+  caption: z.string().describe("The caption text only. No hashtags inside it."),
+  hashtags: z
+    .array(z.string())
+    .describe("Relevant hashtags built from the facts only, such as product type or colors"),
+});
+
+// What the browser may send to POST /api/ai/caption
+export const CaptionRequestSchema = z.object({
+  analysis: AnalysisInputSchema,
+  productInfo: ProductInfoSchema.default({ brand: "", name: "", notes: "" }),
+  platform: z.enum(Object.keys(captionPlatforms)),
+  tone: z.enum(CAPTION_TONES),
+  includeHashtags: z.boolean().default(false),
+  previous: z.string().max(2500).optional(), // the old text, so Regenerate can differ
+});
+
+// Hashtags: letters and numbers only, one leading "#", no duplicates, limited count
+export function cleanHashtags(list, max) {
+  const seen = new Set();
+  const tags = [];
+  for (const tag of list) {
+    const cleaned = String(tag).replace(/[^a-zA-Z0-9]/g, "").slice(0, 40);
+    if (!cleaned || seen.has(cleaned.toLowerCase())) continue;
+    seen.add(cleaned.toLowerCase());
+    tags.push("#" + cleaned);
+    if (tags.length === max) break;
+  }
+  return tags;
+}
+
+// Shortens a text to fit, ending at a full sentence when possible
+export function truncateAtSentence(text, maxLength) {
+  if (text.length <= maxLength) return { text, shortened: false };
+
+  const cut = text.slice(0, maxLength);
+  const lastEnd = Math.max(cut.lastIndexOf("."), cut.lastIndexOf("!"), cut.lastIndexOf("?"));
+  const result = lastEnd > maxLength * 0.5 ? cut.slice(0, lastEnd + 1) : cut.trimEnd();
+  return { text: result, shortened: true };
+}
+// ---------------------------------------------------------------
+// Phase 4: SEO metadata
+// ---------------------------------------------------------------
+
+export const SEO_FIELDS = ["seoTitle", "metaDescription", "keywords", "filenameSuggestion"];
+
+// Common rules of thumb. Search engines actually cut by display width, not by count.
+export const SEO_LIMITS = { seoTitle: 60, metaDescription: 155 };
+
+// The shape we ask Gemini to answer in
+export const SeoSchema = z.object({
+  seoTitle: z
+    .string()
+    .describe("A page title of at most 60 characters: product type plus one key visible detail"),
+  metaDescription: z
+    .string()
+    .describe("A factual one or two sentence summary of 120 to 155 characters"),
+  keywords: z
+    .array(z.string())
+    .describe("5 to 8 lowercase search phrases a shopper might type, built from the facts only"),
+  filenameSuggestion: z
+    .string()
+    .describe("3 to 6 lowercase words joined by hyphens naming the product. No brand, no extension"),
+});
+
+// What the browser may send to POST /api/ai/seo
+export const SeoRequestSchema = z.object({
+  analysis: AnalysisInputSchema,
+  productInfo: ProductInfoSchema.default({ brand: "", name: "", notes: "" }),
+  field: z.enum(["all", ...SEO_FIELDS]).default("all"),
+  previous: z.string().max(500).optional(), // the old text, so Regenerate can differ
+});
+
+// Shortens a text to fit: at a sentence end if possible, otherwise at a word end
+export function shortenText(text, maxLength) {
+  if (text.length <= maxLength) return { text, shortened: false };
+
+  const cut = text.slice(0, maxLength);
+  const lastEnd = Math.max(cut.lastIndexOf("."), cut.lastIndexOf("!"), cut.lastIndexOf("?"));
+  if (lastEnd > maxLength * 0.6) {
+    return { text: cut.slice(0, lastEnd + 1), shortened: true };
+  }
+
+  const lastSpace = cut.lastIndexOf(" ");
+  const result = lastSpace > maxLength * 0.4 ? cut.slice(0, lastSpace) : cut;
+  return { text: result.replace(/[\s,;:\-–]+$/, ""), shortened: true };
+}
+
+// Keywords: lowercase, no commas, no duplicates, limited count
+export function cleanKeywordList(list, max) {
+  const seen = new Set();
+  const result = [];
+  for (const item of list) {
+    const text = String(item ?? "")
+      .replace(/,/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase()
+      .slice(0, 40);
+    if (!text || text === "unknown" || seen.has(text)) continue;
+    seen.add(text);
+    result.push(text);
+    if (result.length === max) break;
+  }
+  return result;
+}
