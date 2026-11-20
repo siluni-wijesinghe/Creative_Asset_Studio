@@ -1,8 +1,11 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { platformPresets } from "./config/platformPresets.js";
 import { generatedDir } from "./config/paths.js";
 import assetRoutes from "./routes/assetRoutes.js";
+import aiRoutes from "./routes/aiRoutes.js";
+import namingRoutes from "./routes/namingRoutes.js";
 
 const app = express();
 const PORT = 5000;
@@ -22,6 +25,8 @@ app.get("/api/presets", (req, res) => {
 });
 
 app.use("/api/assets", assetRoutes);
+app.use("/api/ai", aiRoutes);
+app.use("/api/naming", namingRoutes);
 
 // Error handler: any error passed with next(error) or thrown by Multer lands here
 app.use((error, req, res, next) => {

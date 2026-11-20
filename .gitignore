@@ -5,3 +5,4 @@ dist/
 # Temporary and generated images
 server/uploads/*
 server/generated/*
+test-images/

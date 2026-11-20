@@ -1,9 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import UploadZone from "./components/UploadZone";
 import LogoUpload from "./components/LogoUpload";
 import PlatformSelector from "./components/PlatformSelector";
 import GeneratedAssets from "./components/GeneratedAssets";
+import AiAssistant from "./components/ai/AiAssistant";
 import { DEFAULT_LOGO_PLACEMENT } from "./utils/logoPlacement";
+import { EMPTY_AI } from "./utils/aiState";
+import { buildContentExport } from "./utils/buildContentFile";
 
 const API_URL = "http://localhost:5000";
 
@@ -17,10 +20,13 @@ function App() {
 
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreviewUrl, setLogoPreviewUrl] = useState("");
-  // New in Step 14: one object replaces logoPosition and logoSize
   const [logoPlacement, setLogoPlacement] = useState(DEFAULT_LOGO_PLACEMENT);
 
+  // New in Phase 6: everything the AI assistant produced (see utils/aiState.js)
+  const [ai, setAi] = useState(EMPTY_AI);
+
   const [assets, setAssets] = useState([]);
+  const [zipName, setZipName] = useState(""); // the ZIP's file name, from the server
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateError, setGenerateError] = useState("");
   const [resetCount, setResetCount] = useState(0);
@@ -37,12 +43,23 @@ function App() {
       .catch(() => setPresetsError("Could not load platform options. Is the server running?"));
   }, []);
 
+  // If the brand or the naming choices change, results made with the old
+  // names are out of date, so clear them.
+  useEffect(() => {
+    setAssets([]);
+  }, [ai.naming, ai.productInfo.brand]);
+
   function handleFileSelected(newFile) {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setFile(newFile);
     setPreviewUrl(URL.createObjectURL(newFile));
     setAssets([]);
     setGenerateError("");
+    // A new photo means a new product: clear the AI results, but keep the brand
+    setAi((current) => ({
+      ...EMPTY_AI,
+      productInfo: { ...EMPTY_AI.productInfo, brand: current.productInfo.brand },
+    }));
   }
 
   function handleLogoSelected(newLogo) {
@@ -81,7 +98,9 @@ function App() {
     setLogoPreviewUrl("");
     setLogoPlacement(DEFAULT_LOGO_PLACEMENT);
     setSelectedIds([]);
+    setAi(EMPTY_AI);
     setAssets([]);
+    setZipName("");
     setGenerateError("");
     setResetCount((count) => count + 1);
   }
@@ -96,9 +115,18 @@ function App() {
     formData.append("platforms", JSON.stringify(selectedIds));
     if (logoFile) {
       formData.append("logo", logoFile);
-      // New in Step 14: send the placement as text, like '{"x":0.78,"y":0.78,"width":0.18}'
       formData.append("logoPlacement", JSON.stringify(logoPlacement));
     }
+
+    // The naming choices. Without the AI assistant they are mostly empty,
+    // and the server falls back to the uploaded file's name.
+    const naming = {
+      brand: ai.productInfo.brand,
+      product: ai.naming?.product ?? "",
+      assetType: ai.naming?.assetType ?? (logoFile ? "branded" : "product"),
+      version: ai.naming?.version ?? 1,
+    };
+    formData.append("naming", JSON.stringify(naming));
 
     try {
       const response = await fetch(`${API_URL}/api/assets/generate`, {
@@ -109,6 +137,7 @@ function App() {
 
       if (!response.ok) throw new Error(data.error);
 
+      setZipName(data.zipName || "");
       setAssets(
         data.assets.map((asset) => ({
           ...asset,
@@ -128,9 +157,15 @@ function App() {
   }
 
   const canGenerate = file && selectedIds.length > 0 && !isGenerating;
+    // The approved AI text for the ZIP. It is rebuilt whenever an approval changes,
+  // so Download All always uses the current approvals.
+  const contentExport = useMemo(
+    () => buildContentExport(ai, assets.map((asset) => ({ id: asset.id, name: asset.platform }))),
+    [ai, assets]
+  );
 
   return (
-        <main className="mx-auto max-w-[640px] px-6 py-16">
+    <main className="mx-auto max-w-[640px] px-6 py-16">
       <header>
         <h1 className="mb-2 text-3xl font-bold tracking-tight">Creative Asset Studio</h1>
         <p className="mb-10 text-stone-500">Turn one product image into platform-ready assets.</p>
@@ -142,6 +177,8 @@ function App() {
         previewUrl={previewUrl}
         onFileSelected={handleFileSelected}
       />
+
+      {file && <AiAssistant file={file} ai={ai} setAi={setAi} platforms={selectedIds} />}
 
       {file && (
         <LogoUpload
@@ -160,7 +197,7 @@ function App() {
         <PlatformSelector presets={presets} selectedIds={selectedIds} onToggle={handleToggle} />
       )}
 
-            {presetsError && (
+      {presetsError && (
         <p className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{presetsError}</p>
       )}
 
@@ -185,7 +222,9 @@ function App() {
         <p className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{generateError}</p>
       )}
 
-      {assets.length > 0 && <GeneratedAssets assets={assets} />}
+      {assets.length > 0 && (
+        <GeneratedAssets assets={assets} zipName={zipName} contentExport={contentExport} />
+      )}
 
       {file && (
         <button
@@ -197,7 +236,7 @@ function App() {
         </button>
       )}
 
-            <p className="mt-12 text-center text-xs text-stone-400">{serverStatus}</p>
+      <p className="mt-12 text-center text-xs text-stone-400">{serverStatus}</p>
     </main>
   );
 }

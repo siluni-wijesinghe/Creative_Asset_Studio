@@ -16,6 +16,7 @@ function AssetCard({ asset }) {
         <p className="text-[13px] text-stone-500">
           {asset.width} × {asset.height} · {asset.format}
         </p>
+        <p className="mt-1 break-all font-mono text-[11px] text-stone-400">{asset.fileName}</p>
 
         {/* A normal link. The server's header makes the browser save the file. */}
         <a
