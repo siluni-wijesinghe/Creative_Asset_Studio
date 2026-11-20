@@ -11,8 +11,7 @@ const FIELDS = [
   { id: "filenameSuggestion", title: "Image file name suggestion", rows: 1 },
 ];
 
-function SeoSection({ analysis, productInfo }) {
-  const [items, setItems] = useState(null); // { seoTitle: {text, status, warnings, maxChars}, ... }
+function SeoSection({ analysis, productInfo, items, setItems }) {
   const [busy, setBusy] = useState("");     // "all", a field id, or "" when idle
   const [error, setError] = useState("");
 

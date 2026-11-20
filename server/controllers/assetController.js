@@ -4,6 +4,11 @@ import { randomUUID } from "crypto";
 import { platformPresets } from "../config/platformPresets.js";
 import { generatedDir } from "../config/paths.js";
 import { createAsset } from "../services/imageProcessor.js";
+import { buildAssetFilename, safeFilename, slugify } from "../services/filenameService.js";
+import { NamePreviewRequestSchema } from "../schemas/namingSchemas.js";
+
+// The naming choices that arrive with Generate (the platforms are sent separately)
+const GenerationNamingSchema = NamePreviewRequestSchema.omit({ platforms: true });
 
 export async function generateAssets(req, res, next) {
   // With upload.fields, Multer puts files in req.files, grouped by field name.
@@ -32,30 +37,44 @@ export async function generateAssets(req, res, next) {
       logoPlacement = undefined; // missing or broken: the default placement is used
     }
 
+    // The naming choices arrive as JSON text. If they are missing, defaults are used.
+    let naming = GenerationNamingSchema.parse({});
+    if (req.body.naming) {
+      try {
+        naming = GenerationNamingSchema.parse(JSON.parse(req.body.naming));
+      } catch {
+        return res.status(400).json({ error: "The naming options were not valid." });
+      }
+    }
+
+    // No product name given? Use the uploaded file's name:
+    // "Strawberry Plant.png" becomes "strawberry-plant"
+    const product =
+      naming.product || slugify(path.parse(imageFile.originalname).name) || "product";
+
+    // No naming choices at all? A photo with a logo is "branded", otherwise "product"
+    const assetType = req.body.naming ? naming.assetType : logoFile ? "branded" : "product";
+
     // Each click gets its own folder so results never overwrite each other
     const jobId = randomUUID();
     const jobFolder = path.join(generatedDir, jobId);
     await fs.mkdir(jobFolder, { recursive: true });
 
-    // Use the original name for the files: "Strawberry Plant.png" -> "strawberry-plant"
-    const baseName =
-      path
-        .parse(imageFile.originalname)
-        .name.toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "") || "product";
-
     // Make all the versions at the same time
     const assets = await Promise.all(
       selected.map(async (preset) => {
-        const { fileName } = await createAsset(
-          imageFile.path,
-          preset,
-          jobFolder,
-          baseName,
-          logoFile?.path, // undefined when there's no logo
-          logoPlacement   // { x, y, width } as fractions, or undefined
-        );
+        // The final name is built by our code from cleaned parts
+        const fileName = buildAssetFilename({
+          brand: naming.brand,
+          product,
+          platform: preset.id,
+          assetType,
+          version: naming.version,
+          extension: preset.extension,
+        });
+
+        await createAsset(imageFile.path, preset, jobFolder, fileName, logoFile?.path, logoPlacement);
+
         return {
           id: preset.id,
           platform: preset.name,
@@ -69,7 +88,15 @@ export async function generateAssets(req, res, next) {
       })
     );
 
-    res.json({ assets });
+    // A name for the ZIP too: acme-blue-mug-product-v1-assets.zip
+    const zipName = safeFilename(
+      [naming.brand, product, assetType, `v${naming.version}`, "assets"].filter(Boolean).join(" "),
+      "zip",
+      "assets",
+      100
+    );
+
+    res.json({ assets, zipName });
   } catch (error) {
     next(error); // hand the problem to the error handler in server.js
   } finally {

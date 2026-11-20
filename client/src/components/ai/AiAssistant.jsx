@@ -4,34 +4,51 @@ import AnalysisPanel from "./AnalysisPanel";
 import DescriptionSection from "./DescriptionSection";
 import AltTextSection from "./AltTextSection";
 import CaptionSection from "./CaptionSection";
-import SecondaryButton from "../SecondaryButton";
-import { analyzeProduct } from "../../utils/aiApi";
 import SeoSection from "./SeoSection";
 import NamingSection from "./NamingSection";
+import SecondaryButton from "../SecondaryButton";
+import { analyzeProduct } from "../../utils/aiApi";
+import { EMPTY_AI, defaultNaming } from "../../utils/aiState";
 
-// The AI section. It keeps its own state, and passes the analysis down to
-// the features that reuse it.
-function AiAssistant({ file }) {
-  const [productInfo, setProductInfo] = useState({ brand: "", name: "", notes: "" });
-  const [analysis, setAnalysis] = useState(null);
+// The AI section. It no longer owns the AI data: App does (the "ai" object).
+// This component shows it and asks App to change it.
+//   ai        = everything the AI produced (see utils/aiState.js)
+//   setAi     = changes it
+//   platforms = the platform ids selected in the main platform picker
+function AiAssistant({ file, ai, setAi, platforms }) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState("");
+
+  // Makes a setter for ONE part of the ai object, for example setPart("altText").
+  // Like useState's setter, it accepts a new value or a function.
+  const setPart = (key) => (update) =>
+    setAi((current) => ({
+      ...current,
+      [key]: typeof update === "function" ? update(current[key]) : update,
+    }));
 
   async function handleAnalyze() {
     setIsAnalyzing(true);
     setError("");
-    // Clearing the analysis also removes the description and alt text below it,
-    // because they belong to the old analysis.
-    setAnalysis(null);
+    // Everything below the analysis belongs to the old analysis, so clear it.
+    // What you typed in Product info stays.
+    setAi((current) => ({ ...EMPTY_AI, productInfo: current.productInfo }));
 
     try {
-      setAnalysis(await analyzeProduct(file, productInfo));
+      const analysis = await analyzeProduct(file, ai.productInfo);
+      setAi((current) => ({
+        ...current,
+        analysis,
+        naming: defaultNaming(analysis, current.productInfo),
+      }));
     } catch (err) {
       setError(err.message);
     } finally {
       setIsAnalyzing(false);
     }
   }
+
+  const { analysis, productInfo } = ai;
 
   return (
     <section className="mt-10">
@@ -45,7 +62,11 @@ function AiAssistant({ file }) {
           write it and is never guessed. The photo and this text are sent to Google's Gemini API.
         </p>
 
-        <ProductInfoForm value={productInfo} onChange={setProductInfo} disabled={isAnalyzing} />
+        <ProductInfoForm
+          value={productInfo}
+          onChange={setPart("productInfo")}
+          disabled={isAnalyzing}
+        />
 
         <SecondaryButton className="w-full py-3" onClick={handleAnalyze} disabled={isAnalyzing}>
           {isAnalyzing ? "Analyzing..." : analysis ? "Analyze again" : "Analyze with AI"}
@@ -59,11 +80,31 @@ function AiAssistant({ file }) {
       {analysis && (
         <>
           <AnalysisPanel analysis={analysis} />
-          <DescriptionSection analysis={analysis} productInfo={productInfo} />
-          <AltTextSection analysis={analysis} />
-          <CaptionSection analysis={analysis} productInfo={productInfo} />
-          <SeoSection analysis={analysis} productInfo={productInfo} />
-          <NamingSection analysis={analysis} productInfo={productInfo} />
+          <DescriptionSection
+            analysis={analysis}
+            productInfo={productInfo}
+            items={ai.description}
+            setItems={setPart("description")}
+          />
+          <AltTextSection analysis={analysis} item={ai.altText} setItem={setPart("altText")} />
+          <CaptionSection
+            analysis={analysis}
+            productInfo={productInfo}
+            items={ai.captions}
+            setItems={setPart("captions")}
+          />
+          <SeoSection
+            analysis={analysis}
+            productInfo={productInfo}
+            items={ai.seo}
+            setItems={setPart("seo")}
+          />
+          <NamingSection
+            brand={productInfo.brand}
+            naming={ai.naming}
+            onNamingChange={setPart("naming")}
+            platforms={platforms}
+          />
         </>
       )}
     </section>

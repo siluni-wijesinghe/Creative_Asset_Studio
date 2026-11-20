@@ -7,5 +7,5 @@ export const aiConfig = {
   maxImageSide: 1024,
 
   // Give up on a Gemini call after this many milliseconds
-  timeoutMs: 30000,
+  timeoutMs: 60000,
 };

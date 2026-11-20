@@ -11,9 +11,8 @@ const FIELDS = [
   { id: "oneLine", title: "One-line summary", rows: 2 },
 ];
 
-function DescriptionSection({ analysis, productInfo }) {
+function DescriptionSection({ analysis, productInfo, items, setItems }) {
   const [tone, setTone] = useState("professional");
-  const [items, setItems] = useState(null); // { short: {text, status, warnings}, ... }
   const [busy, setBusy] = useState("");     // "all", a field id, or "" when idle
   const [error, setError] = useState("");
 

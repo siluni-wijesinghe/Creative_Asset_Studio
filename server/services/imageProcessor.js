@@ -23,12 +23,11 @@ function readPlacement(raw) {
 export async function createAsset(
   inputPath,
   preset,
-  outputFolder,
-  baseName,
+    outputFolder,
+  fileName, // the final file name, built by filenameService
   logoPath,
   logoPlacement
 ) {
-  const fileName = `${baseName}-${preset.id}-${preset.width}x${preset.height}.${preset.extension}`;
   const outputPath = path.join(outputFolder, fileName);
 
   // Step 1: resize and crop the product image

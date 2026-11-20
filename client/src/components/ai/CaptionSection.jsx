@@ -18,11 +18,10 @@ const TONES = [
   { id: "minimal", label: "Minimal" },
 ];
 
-function CaptionSection({ analysis, productInfo }) {
+function CaptionSection({ analysis, productInfo, items, setItems }) {
   const [platform, setPlatform] = useState("instagram"); // the tab we're looking at
   const [tone, setTone] = useState("friendly");
   const [includeHashtags, setIncludeHashtags] = useState(true);
-  const [items, setItems] = useState({}); // one result per platform
   const [busy, setBusy] = useState("");   // the platform being written, or ""
   const [error, setError] = useState("");
 

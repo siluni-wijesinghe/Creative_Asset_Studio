@@ -2,7 +2,8 @@ import JSZip from "jszip";
 
 // Takes the list of generated assets, puts them all in one ZIP,
 // and makes the browser download it.
-export async function downloadAllAsZip(assets, zipName) {
+//   extraFiles = [{ name, content }] adds text files to the ZIP (optional)
+export async function downloadAllAsZip(assets, zipName, extraFiles = []) {
   const zip = new JSZip();
 
   // Fetch each image and add it to the ZIP under its own file name
@@ -10,6 +11,11 @@ export async function downloadAllAsZip(assets, zipName) {
     const response = await fetch(asset.url);
     const imageBlob = await response.blob(); // a "blob" is raw file data
     zip.file(asset.fileName, imageBlob);
+  }
+
+  // Add the extra text files, such as the approved content
+  for (const extra of extraFiles) {
+    zip.file(extra.name, extra.content);
   }
 
   // Build the ZIP file in memory

@@ -3,8 +3,8 @@ import ContentCard from "./ContentCard";
 import SecondaryButton from "../SecondaryButton";
 import { generateAltText } from "../../utils/aiApi";
 
-function AltTextSection({ analysis }) {
-  const [item, setItem] = useState(null); // { text, status, warnings }
+// "item" and "setItem" now come from App (through AiAssistant)
+function AltTextSection({ analysis, item, setItem }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 

@@ -15,15 +15,16 @@ const inputClass =
 
 // Shows the final file names. The names are built on the server by plain code
 // (no AI). The brand comes only from what you typed in "Product info".
-function NamingSection({ analysis, productInfo }) {
-  // Start from your own product name, or else the AI's name for the product
-  const [product, setProduct] = useState(
-    productInfo.name || (analysis.productName.toLowerCase() === "unknown" ? "" : analysis.productName)
-  );
-  const [assetType, setAssetType] = useState("product");
-  const [version, setVersion] = useState(1);
+// "naming" = { product, assetType, version } and is owned by App.
+function NamingSection({ brand, naming, onNamingChange, platforms }) {
   const [names, setNames] = useState([]);
   const [error, setError] = useState("");
+  const { product, assetType, version } = naming;
+
+  // Changes some of the naming choices and tells the parent
+  function update(changes) {
+    onNamingChange({ ...naming, ...changes });
+  }
 
   // Asks the server for the names whenever something changes.
   // The short delay (300 ms) avoids a request on every single keystroke.
@@ -32,7 +33,14 @@ function NamingSection({ analysis, productInfo }) {
 
     const timer = setTimeout(async () => {
       try {
-        const result = await previewNames({ brand: productInfo.brand, product, assetType, version });
+        const result = await previewNames({
+          brand,
+          product,
+          assetType,
+          version,
+          // Only the platforms you selected (all of them if none are selected yet)
+          platforms: platforms.length > 0 ? platforms : undefined,
+        });
         if (!cancelled) {
           setNames(result);
           setError("");
@@ -47,7 +55,7 @@ function NamingSection({ analysis, productInfo }) {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [productInfo.brand, product, assetType, version]);
+  }, [brand, product, assetType, version, platforms]);
 
   return (
     <div className="mt-6 rounded-2xl border-[1.5px] border-stone-200 bg-white p-4">
@@ -65,7 +73,7 @@ function NamingSection({ analysis, productInfo }) {
             value={product}
             maxLength={100}
             placeholder="e.g. Blue coffee mug"
-            onChange={(e) => setProduct(e.target.value)}
+            onChange={(e) => update({ product: e.target.value })}
           />
         </label>
 
@@ -74,7 +82,7 @@ function NamingSection({ analysis, productInfo }) {
           <select
             className={inputClass}
             value={assetType}
-            onChange={(e) => setAssetType(e.target.value)}
+            onChange={(e) => update({ assetType: e.target.value })}
           >
             {ASSET_TYPES.map((type) => (
               <option key={type.id} value={type.id}>
@@ -89,7 +97,7 @@ function NamingSection({ analysis, productInfo }) {
           <div className="flex items-center gap-2">
             <SecondaryButton
               className="px-3 py-2"
-              onClick={() => setVersion((v) => Math.max(v - 1, 1))}
+              onClick={() => update({ version: Math.max(version - 1, 1) })}
               disabled={version <= 1}
             >
               −
@@ -97,7 +105,7 @@ function NamingSection({ analysis, productInfo }) {
             <span className="min-w-10 text-center text-sm font-semibold">v{version}</span>
             <SecondaryButton
               className="px-3 py-2"
-              onClick={() => setVersion((v) => Math.min(v + 1, 99))}
+              onClick={() => update({ version: Math.min(version + 1, 99) })}
               disabled={version >= 99}
             >
               +
@@ -108,8 +116,8 @@ function NamingSection({ analysis, productInfo }) {
 
       <p className="mb-3 text-[13px] text-stone-500">
         Brand:{" "}
-        {productInfo.brand ? (
-          <span className="font-semibold text-stone-900">{productInfo.brand}</span>
+        {brand ? (
+          <span className="font-semibold text-stone-900">{brand}</span>
         ) : (
           "none (it is left out of the names). Type one in Product info above."
         )}
@@ -131,7 +139,7 @@ function NamingSection({ analysis, productInfo }) {
       )}
 
       <p className="mt-2 text-xs text-stone-400">
-        These names aren't used for exports yet. That comes in the next phase.
+        These names are used when you click Generate Assets, for the platforms you select.
       </p>
     </div>
   );

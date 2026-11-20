@@ -12,6 +12,7 @@ if (!aiConfig.apiKey) {
 }
 
 const ai = new GoogleGenAI({ apiKey: aiConfig.apiKey });
+const start = Date.now();
 
 try {
   const response = await ai.models.generateContent({
@@ -20,6 +21,7 @@ try {
   });
   console.log("Gemini says:", response.text);
 } catch (error) {
-  // error.message can be long, but it never contains the key
   console.log("The call failed:", error.message);
 }
+
+console.log(`Took ${((Date.now() - start) / 1000).toFixed(1)} seconds`);
